@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+  namespace: autoscale-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consumer
+  template:
+    metadata:
+      labels:
+        app: consumer
+    spec:
+      containers:
+        - name: consumer
+          image: consumer:latest
+          imagePullPolicy: IfNotPresent
+
+          # ADD THIS BLOCK:
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+          # ... rest of env ...
+
+
+
+
+          env:
+            - name: KAFKA_BROKER
+              value: kafka:9092
+            - name: TOPIC
+              value: demo-topic
+            - name: GROUP_ID
+              value: demo-group
+            - name: SLEEP_MS
+              value: "300"

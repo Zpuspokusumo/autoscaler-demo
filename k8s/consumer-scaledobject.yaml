@@ -1,0 +1,30 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: consumer-kafka-scaler
+  namespace: autoscale-demo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: consumer   # Target the consumer process
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  cooldownPeriod: 30
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+  triggers:
+  - type: kafka
+    metadata:
+      bootstrapServers: kafka.autoscale-demo.svc.cluster.local:9092
+      topic: demo-topic
+      consumerGroup: demo-group
+      # Scale up by 1 replica pod for every 10 unread messages lagging in the partition
+      lagThreshold: "10"

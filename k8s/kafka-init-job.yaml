@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-topic-creator
+  namespace: autoscale-demo
+spec:
+  template:
+    spec:
+      containers:
+      - name: topic-creator
+        image: apache/kafka:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for Kafka to accept connections..."
+          until nc -z kafka 9092; do
+            sleep 1
+          done
+          echo "Kafka is up. Creating topic..."
+          /opt/kafka/bin/kafka-topics.sh --create \
+            --bootstrap-server kafka:9092 \
+            --replication-factor 1 \
+            --partitions 3 \
+            --topic demo-topic \
+            --if-not-exists
+          echo "Topic verification complete."
+      restartPolicy: OnFailure

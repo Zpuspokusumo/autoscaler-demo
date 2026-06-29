@@ -1,0 +1,9 @@
+FROM golang:1.25.5 AS builder
+WORKDIR /src
+COPY go.mod go.sum ./
+COPY producer ./producer
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /out/producer ./producer
+
+FROM gcr.io/distroless/static
+COPY --from=builder /out/producer /app/producer
+ENTRYPOINT ["/app/producer"]
