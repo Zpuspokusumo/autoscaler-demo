@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -30,12 +31,21 @@ func main() {
 	defer reader.Close()
 
 	ctx := context.Background()
-	log.Printf("consumer starting: broker=%s topic=%s group=%s sleepMs=%d", broker, topic, groupID, sleepMs)
+	// logmaker, err := telemetry.InitLogger(ctx, "CONSUMER")
+	// if err != nil {
+	// 	log.Fatalf("failed to initialize logger: %v", err)
+	// }
+	// defer logmaker.Shutdown(ctx)
+
+	// plog := logmaker.Logger("processor")
+	notice := fmt.Sprintf("consumer starting: broker=%s topic=%s group=%s sleepMs=%d\n", broker, topic, groupID, sleepMs)
+	log.Printf(notice)
 
 	for {
 		msg, err := reader.ReadMessage(ctx)
 		if err != nil {
 			log.Printf("read error: %v", err)
+
 			time.Sleep(2 * time.Second)
 			continue
 		}

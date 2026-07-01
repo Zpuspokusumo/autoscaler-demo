@@ -14,15 +14,18 @@ spec:
         - -c
         - |
           echo "Waiting for Kafka to accept connections..."
+          # Using fully qualified internal domain or service name for reliable connection
           until nc -z kafka 9092; do
             sleep 1
           done
-          echo "Kafka is up. Creating topic..."
-          /opt/kafka/bin/kafka-topics.sh --create \
-            --bootstrap-server kafka:9092 \
-            --replication-factor 1 \
-            --partitions 3 \
-            --topic demo-topic \
-            --if-not-exists
+          echo "Kafka is up. Attempting initialization..."
+          
+          # Try creating the 10-partition topic cleanly first
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 \
+            --create --topic demo-topic --partitions 10 --replication-factor 1 || \
+          # If it already exists (due to auto-creation), force-upgrade it to 10 partitions
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 \
+            --alter --topic demo-topic --partitions 10
+
           echo "Topic verification complete."
       restartPolicy: OnFailure
