@@ -8,6 +8,9 @@ applydeployment:
 	@echo "Cleaning up old transient job tracking records..."
 	# Wiping the job history forces Kubernetes to execute it fresh
 	-kubectl delete job kafka-topic-creator -n autoscale-demo 2>/dev/null || true
+	
+	@echo "Applying base telemetry infrastructure..."
+	kubectl apply -f k8s/otel-collector.yaml
 
 	@echo "Applying base infrastructure..."
 	kubectl apply -f k8s/namespace.yaml
@@ -27,6 +30,11 @@ applydeployment:
 	kubectl apply -f k8s/consumer-deployment.yaml
 	kubectl apply -f k8s/consumer-scaledobject.yaml
 
+compileall:
+	@echo "Compiling producer and consumer..."
+	docker build -t producer:latest -f Dockerfile.producer .
+	docker build -t consumer:latest -f Dockerfile.consumer . 
+
 pauseapps:
 	@echo "Pausing applications..."
 	kubectl scale deployment producer --replicas=0 -n autoscale-demo
@@ -40,6 +48,9 @@ envup:
 envdown:
 	@echo "Bringing down environment..."
 	eval "$(minikube docker-env -u)"
+
+checkenv:
+	echo $MINIKUBE_ACTIVE_DOCKERD
 
 watchhpa:
 	@echo "Watching hpa..."
@@ -88,3 +99,17 @@ checkscaledobject_kafkascaler:
 watchotel:
 	@echo "Streaming raw OpenTelemetry log collector payload..."
 	kubectl logs -f deployment/otel-collector -n monitoring
+
+watchlogsconsumer:
+	@echo "Streaming consumer logs..."
+	kubectl logs -f -l app=consumer -n autoscale-demo 
+	
+portfwdmonitoring:
+	@echo "Port forwarding OpenTelemetry collector to localhost:4317..."
+	kubectl port-forward svc/otel-collector 4318:4318 -n monitoring
+
+curlmonitoring:
+	@echo "Curling OpenTelemetry collector endpoint..."
+	curl -i -X POST http://localhost:4318/v1/logs \
+  -H "Content-Type: application/json" \
+  -d '{"resourceLogs":[{"resource":{},"scopeLogs":[{"logRecords":[{"body":{"stringValue":"Test message from local machine"}}]}]}]}'

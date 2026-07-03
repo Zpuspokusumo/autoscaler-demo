@@ -3,9 +3,8 @@ package telemetry
 import (
 	"context"
 	"os"
-	"time"
 
-	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
@@ -13,9 +12,9 @@ import (
 
 func InitLogger(ctx context.Context, serviceName string) (*log.LoggerProvider, error) {
 	// 1. Configure the OTLP gRPC exporter directing traffic cross-namespace
-	exporter, err := otlploggrpc.New(ctx,
-		otlploggrpc.WithInsecure(),
-		otlploggrpc.WithEndpoint("otel-collector.monitoring.svc.cluster.local:4317"),
+	exporter, err := otlploghttp.New(ctx,
+		otlploghttp.WithInsecure(),
+		otlploghttp.WithEndpoint("otel-collector.monitoring.svc.cluster.local:4317"),
 	)
 	if err != nil {
 		return nil, err
@@ -46,11 +45,12 @@ func InitLogger(ctx context.Context, serviceName string) (*log.LoggerProvider, e
 	}
 
 	// 3. Create a processor that batches records efficiently before pushing
-	processor := log.NewBatchProcessor(
-		exporter,
-		log.WithExportInterval(1*time.Second), // Correct Option for Logs SDK
-		log.WithExportMaxBatchSize(512),
-	)
+	// processor := log.NewBatchProcessor(
+	// 	exporter,
+	// 	log.WithExportInterval(1*time.Second), // Correct Option for Logs SDK
+	// 	log.WithExportMaxBatchSize(512),
+	// )
+	processor := log.NewSimpleProcessor(exporter)
 
 	// 4. Instantiate the centralized Provider
 	provider := log.NewLoggerProvider(
